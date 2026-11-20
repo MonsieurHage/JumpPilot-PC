@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jump Pilot PC</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#141b24; --accent:#3ddc84; --danger:#ff4d4d; --text:#e6edf3; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+  #app { display:grid; grid-template-columns: 1fr 320px; height:100vh; }
+  #view { position:relative; background:linear-gradient(180deg,#1a2330,#0b0f14); display:flex; align-items:center; justify-content:center; }
+  #view .hint { opacity:.6; font-size:14px; text-align:center; }
+  #panel { padding:16px; background:var(--panel); display:flex; flex-direction:column; gap:12px; }
+  h1 { margin:0; font-size:18px; }
+  .status { display:flex; gap:8px; align-items:center; font-size:13px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#555; }
+  .dot.on { background:var(--accent); box-shadow:0 0 8px var(--accent); }
+  .row { display:flex; gap:8px; }
+  button { flex:1; padding:10px; border:0; border-radius:8px; background:#1f2a37; color:var(--text); cursor:pointer; font-weight:600; }
+  button:hover { background:#263344; }
+  button.danger { background:var(--danger); }
+  button.primary { background:var(--accent); color:#0b0f14; }
+  .keypad { display:grid; grid-template-columns: repeat(3,1fr); gap:6px; }
+  .keypad button { aspect-ratio:1; font-size:18px; }
+  .speed { display:flex; align-items:center; gap:8px; }
+  .speed input { flex:1; }
+  .log { flex:1; background:#0b0f14; border-radius:8px; padding:8px; font-family:monospace; font-size:12px; overflow:auto; white-space:pre-wrap; }
+  .kbd { display:inline-block; padding:2px 6px; border:1px solid #444; border-radius:4px; font-size:11px; background:#1a2330; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <div class="hint">
+      <div style="font-size:48px">🎮</div>
+      <div>Jump Pilot — Contrôle PC</div>
+      <div style="margin-top:8px">Connecte-toi au Wi-Fi du robot, puis clique <b>Connecter</b>.</div>
+      <div style="margin-top:12px;font-size:12px">
+        <span class="kbd">Z</span> avancer · <span class="kbd">S</span> reculer ·
+        <span class="kbd">Q</span> gauche · <span class="kbd">D</span> droite ·
+        <span class="kbd">Espace</span> stop
+      </div>
+    </div>
+  </div>
+  <div id="panel">
+    <h1>Jump Pilot PC</h1>
+    <div class="status">
+      <div class="dot" id="dot"></div>
+      <span id="statusText">Déconnecté</span>
+      <span style="margin-left:auto">Batterie: <b id="bat">-</b>%</span>
+    </div>
+    <div class="row">
+      <button id="btnConnect" class="primary">Connecter</button>
+    </div>
+    <div class="keypad">
+      <div></div><button data-action="forward">▲</button><div></div>
+      <button data-action="left">◀</button><button data-action="stop" class="danger">■</button><button data-action="right">▶</button>
+      <div></div><button data-action="backward">▼</button><div></div>
+    </div>
+    <div class="speed">
+      <label>Vitesse</label>
+      <input type="range" id="speed" min="10" max="127" value="40">
+      <span id="speedVal">40</span>
+    </div>
+    <div class="row">
+      <button data-action="highJump">Saut haut</button>
+      <button data-action="longJump">Saut long</button>
+    </div>
+    <div class="row">
+      <button data-action="postureJumper">Jumper</button>
+      <button data-action="postureKicker">Kicker</button>
+      <button data-action="postureStanding">Standing</button>
+    </div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+<script>
+const $ = (s)=>document.querySelector(s);
+const log = (m)=>{ const el=$('#log'); el.textContent += m+"\n"; el.scrollTop=el.scrollHeight; };
+let speed = 40;
+$('#speed').addEventListener('input', e=>{ speed=e.target.value; $('#speedVal').textContent=speed; });
+const keys = { z:'forward', s:'backward', q:'left', d:'right', arrowup:'forward', arrowdown:'backward', arrowleft:'left', arrowright:'right' };
+const held = new Set();
+async function send(action, sp){
+  try {
+    const r = await fetch('/api/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action, speed: sp||speed})});
+    const j = await r.json();
+    if(!j.ok) log('err: '+JSON.stringify(j));
+  } catch(e){ log('net err: '+e); }
+}
+function handleKey(e, down){
+  const k = e.key.toLowerCase();
+  if(k===' '){ if(down){ send('stop'); } e.preventDefault(); return; }
+  if(keys[k]){
+    e.preventDefault();
+    if(down){
+      if(!held.has(k)){ held.add(k); send(keys[k]); }
+    } else {
+      held.delete(k);
+      // stop only if no movement key held
+      if(![...held].some(x=>keys[x])) send('stop');
+    }
+  }
+  if(k==='j' && down) send('highJump');
+  if(k==='k' && down) send('longJump');
+  if(k==='1' && down) send('postureJumper');
+  if(k==='2' && down) send('postureKicker');
+  if(k==='3' && down) send('postureStanding');
+  if(k==='+' && down){ speed=Math.min(127,+speed+5); $('#speed').value=speed; $('#speedVal').textContent=speed; }
+  if(k==='-' && down){ speed=Math.max(10,+speed-5); $('#speed').value=speed; $('#speedVal').textContent=speed; }
+}
+window.addEventListener('keydown', e=>handleKey(e,true));
+window.addEventListener('keyup', e=>handleKey(e,false));
+document.querySelectorAll('button[data-action]').forEach(b=>{
+  const a=b.dataset.action;
+  const down=()=>send(a);
+  b.addEventListener('mousedown', down);
+  b.addEventListener('touchstart', e=>{ e.preventDefault(); down(); });
+  if(a!=='stop' && a!=='highJump' && a!=='longJump' && !a.startsWith('posture')) return;
+});
+$('#btnConnect').addEventListener('click', async ()=>{
+  log('connexion...');
+  const r = await fetch('/api/connect',{method:'POST'});
+  const j = await r.json();
+  log(j.connected?'connecté':'échec');
+  updateStatus();
+});
+async function updateStatus(){
+  try{
+    const r=await fetch('/api/status'); const j=await r.json();
+    $('#dot').classList.toggle('on', j.connected);
+    $('#statusText').textContent = j.connected?'Connecté':'Déconnecté';
+    $('#bat').textContent = j.battery>=0? j.battery : '-';
+  }catch(e){}
+}
+setInterval(updateStatus, 2000);
+updateStatus();
+</script>
+</body>
+</html>
+"
