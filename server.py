@@ -57,7 +57,8 @@ def connect_robot():
         connected = False
         battery = -1
         last_error = ""
-        robot = JumpSumo(host='192.168.2.1', on_state=on_state, on_battery=on_battery, on_alert=on_alert)
+robot = JumpSumo(host=os.environ.get("DRONE_IP", "192.168.2.1"), discovery_port=int(os.environ.get("DRONE_PORT", "44444")),
+                on_state=on_state, on_battery=on_battery, on_alert=on_alert)
     robot.connect()
     # wait up to 12s
     for _ in range(60):

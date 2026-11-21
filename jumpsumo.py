@@ -2,7 +2,7 @@
 Ported from the C core of Jump Pilot (JPClient.c / JPProtocol.c).
 No native compiler required. Works on Windows, Linux, macOS.
 """
-import socket, json, struct, threading, time, ctypes
+import socket, json, struct, threading, time, ctypes, logging, os
 
 def rd16(p): return p[0] | (p[1] << 8)
 def rd32(p): return p[0] | (p[1]<<8) | (p[2]<<16) | (p[3]<<24)
@@ -194,12 +194,15 @@ class JumpSumo:
         try:
             fd.connect((self.host, self.discovery_port))
         except Exception as e:
-            return None, str(e)
+            msg = "TCP connect failed: %r" % e
+            print(msg, flush=True)
+            logging.info(msg) if False else None
+            return None, msg
         req = ('{"d2c_port":%d,"controller_type":"PC","controller_name":"Jump Pilot PC"}\x00' % d2c_port).encode()
         try:
             fd.sendall(req)
         except Exception as e:
-            fd.close(); return None, str(e)
+            fd.close(); return None, "send failed: %r" % e
         # receive
         data = b''
         deadline = time.time() + 9.0
@@ -211,6 +214,7 @@ class JumpSumo:
                 if not chunk:
                     break
                 data += chunk
+                print("DISCOVERY RAW:", repr(data[:500]), flush=True)
                 res = parse_discovery(data)
                 if res is not None:
                     result = res; break
@@ -218,12 +222,14 @@ class JumpSumo:
                     break
             except socket.timeout:
                 break
-            except Exception:
+            except Exception as e:
+                print("recv exc:", repr(e), flush=True)
                 break
         fd.close()
         if result is None:
-            # try parse anyway
             result = parse_discovery(data)
+        if result is None:
+            return None, "no valid discovery response; raw=%r" % (data[:300],)
         return result, None
 
     def _run(self):
