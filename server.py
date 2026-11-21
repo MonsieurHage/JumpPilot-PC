@@ -2,7 +2,12 @@
 Pilote le robot via le module Python pur jumpsumo (protocole Parrot ARSDK).
 Aucun compilateur natif requis.
 """
-import os, sys, time, threading
+import logging
+logging.basicConfig(filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "jump_pilot.log"),
+                    level=logging.INFO, format="%(asctime)s %(message)s")
+def logmsg(m):
+    print(m, flush=True)
+    logging.info(m)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jumpsumo import JumpSumo
 from flask import Flask, request, jsonify, send_from_directory
@@ -27,7 +32,7 @@ def on_state(value, msg):
         last_error = msg
     elif value == 0:
         connected = False
-    print(f"[state] {value}: {msg}", flush=True)
+    logmsg(f"[state] {value}: {msg}")
 
 def on_battery(v):
     global battery
@@ -35,10 +40,10 @@ def on_battery(v):
         battery = int(v)
     except Exception:
         battery = v
-    print(f"[battery] {battery}", flush=True)
+    logmsg(f"[battery] {battery}")
 
 def on_alert(v):
-    print(f"[alert] {v}", flush=True)
+    logmsg(f"[alert] {v}")
 
 def connect_robot():
     global robot, connected, battery, last_error
@@ -116,5 +121,5 @@ def api_cmd():
 
 if __name__ == "__main__":
     threading.Thread(target=connect_robot, daemon=True).start()
-    print("Jump Pilot PC -> http://127.0.0.1:8000")
+    logmsg("Jump Pilot PC -> http://127.0.0.1:8000")
     app.run(host="127.0.0.1", port=8000, debug=False, threaded=True)
