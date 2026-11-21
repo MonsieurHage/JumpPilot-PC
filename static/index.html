@@ -5,100 +5,165 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jump Pilot PC</title>
 <style>
-  :root { --bg:#0b0f14; --panel:#141b24; --accent:#3ddc84; --danger:#ff4d4d; --text:#e6edf3; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
-  #app { display:grid; grid-template-columns: 1fr 320px; height:100vh; }
-  #view { position:relative; background:linear-gradient(180deg,#1a2330,#0b0f14); display:flex; align-items:center; justify-content:center; }
-  #view .hint { opacity:.6; font-size:14px; text-align:center; }
-  #panel { padding:16px; background:var(--panel); display:flex; flex-direction:column; gap:12px; }
-  h1 { margin:0; font-size:18px; }
-  .status { display:flex; gap:8px; align-items:center; font-size:13px; }
-  .dot { width:10px; height:10px; border-radius:50%; background:#555; }
-  .dot.on { background:var(--accent); box-shadow:0 0 8px var(--accent); }
-  .row { display:flex; gap:8px; }
-  button { flex:1; padding:10px; border:0; border-radius:8px; background:#1f2a37; color:var(--text); cursor:pointer; font-weight:600; }
-  button:hover { background:#263344; }
-  button.danger { background:var(--danger); }
-  button.primary { background:var(--accent); color:#0b0f14; }
+  :root {
+    --bg:#05080d; --panel:#0d1520; --panel2:#101a28;
+    --accent:#00ff9d; --accent2:#00b8ff; --danger:#ff3b5c;
+    --warn:#ffb020; --text:#d7e3f0; --muted:#6b7a8f;
+    --border:rgba(0,255,157,.25);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); overflow:hidden; }
+  #app { display:grid; grid-template-columns: 1fr 360px; height:100vh; }
+
+  /* Vue principale */
+  #view { position:relative; background:radial-gradient(ellipse at 50% 40%, #0f1a2b 0%, #05080d 70%); display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+  #view::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,255,157,.03) 2px 3px); pointer-events:none; }
+  .reticle { width:120px; height:120px; border:2px solid var(--accent); border-radius:50%; position:relative; box-shadow:0 0 24px var(--accent), inset 0 0 24px rgba(0,255,157,.15); }
+  .reticle::after { content:""; position:absolute; top:50%; left:50%; width:8px; height:8px; background:var(--accent); border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 12px var(--accent); }
+  .reticle .h,.reticle .v { position:absolute; background:var(--accent); opacity:.6; }
+  .reticle .h { top:50%; left:-10px; right:-10px; height:1px; }
+  .reticle .v { left:50%; top:-10px; bottom:-10px; width:1px; }
+  #view .title { margin-top:24px; font-size:22px; letter-spacing:4px; text-transform:uppercase; color:var(--accent); text-shadow:0 0 12px var(--accent); }
+  #view .sub { margin-top:6px; font-size:12px; color:var(--muted); letter-spacing:2px; }
+  #view .keys { margin-top:28px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:420px; }
+  .kbd { padding:4px 10px; border:1px solid var(--accent); border-radius:4px; font-size:11px; background:rgba(0,255,157,.08); color:var(--accent); }
+
+  /* Panneau droit futuriste */
+  #panel { padding:14px; background:linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%); border-left:1px solid var(--border); display:flex; flex-direction:column; gap:10px; box-shadow:-4px 0 24px rgba(0,255,157,.08); }
+  h1 { margin:0; font-size:16px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); text-shadow:0 0 8px var(--accent); }
+
+  .status { display:flex; align-items:center; gap:8px; font-size:12px; padding:8px; border:1px solid var(--border); border-radius:8px; background:rgba(0,255,157,.04); }
+  .dot { width:10px; height:10px; border-radius:50%; background:#333; transition:all .3s; }
+  .dot.on { background:var(--accent); box-shadow:0 0 10px var(--accent); }
+  .dot.err { background:var(--danger); box-shadow:0 0 10px var(--danger); }
+  .bat { margin-left:auto; color:var(--accent2); }
+
+  .btn { padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:linear-gradient(180deg,#142030,#0a121c); color:var(--text); cursor:pointer; font-weight:600; font-size:13px; letter-spacing:1px; text-transform:uppercase; transition:all .08s; position:relative; overflow:hidden; }
+  .btn:hover { border-color:var(--accent); color:var(--accent); box-shadow:0 0 12px rgba(0,255,157,.25); }
+  .btn:active, .btn.pressed { transform:translateY(2px) scale(.97); box-shadow:inset 0 2px 6px rgba(0,0,0,.6), 0 0 6px rgba(0,255,157,.4); background:linear-gradient(180deg,#0a121c,#142030); }
+  .btn.primary { border-color:var(--accent); color:var(--accent); }
+  .btn.danger { border-color:var(--danger); color:var(--danger); }
+  .btn.danger:hover { box-shadow:0 0 12px rgba(255,59,92,.3); }
+  .btn.warn { border-color:var(--warn); color:var(--warn); }
+
+  .row { display:flex; gap:6px; }
   .keypad { display:grid; grid-template-columns: repeat(3,1fr); gap:6px; }
-  .keypad button { aspect-ratio:1; font-size:18px; }
-  .speed { display:flex; align-items:center; gap:8px; }
-  .speed input { flex:1; }
-  .log { flex:1; background:#0b0f14; border-radius:8px; padding:8px; font-family:monospace; font-size:12px; overflow:auto; white-space:pre-wrap; }
-  .kbd { display:inline-block; padding:2px 6px; border:1px solid #444; border-radius:4px; font-size:11px; background:#1a2330; }
+  .keypad .btn { aspect-ratio:1; font-size:20px; padding:0; }
+
+  .speed { display:flex; align-items:center; gap:8px; font-size:12px; }
+  .speed input[type=range] { flex:1; accent-color:var(--accent); }
+  .speed .val { min-width:32px; text-align:right; color:var(--accent); font-weight:700; }
+
+  /* Zone de log */
+  .logHeader { display:flex; justify-content:space-between; align-items:center; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+  .logBox { flex:1; min-height:120px; max-height:220px; overflow-y:auto; background:#02040a; border:1px solid var(--border); border-radius:8px; padding:8px; font-family:'Consolas',monospace; font-size:11px; line-height:1.5; }
+  .logBox::-webkit-scrollbar { width:8px; }
+  .logBox::-webkit-scrollbar-track { background:#0a121c; }
+  .logBox::-webkit-scrollbar-thumb { background:var(--accent); border-radius:4px; }
+  .logLine { color:#8fa8c0; }
+  .logLine.ok { color:var(--accent); }
+  .logLine.err { color:var(--danger); }
+  .logLine.info { color:var(--accent2); }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="view">
-    <div class="hint">
-      <div style="font-size:48px">🎮</div>
-      <div>Jump Pilot — Contrôle PC</div>
-      <div style="margin-top:8px">Connecte-toi au Wi-Fi du robot, puis clique <b>Connecter</b>.</div>
-      <div style="margin-top:12px;font-size:12px">
-        <span class="kbd">Z</span> avancer · <span class="kbd">S</span> reculer ·
-        <span class="kbd">Q</span> gauche · <span class="kbd">D</span> droite ·
-        <span class="kbd">Espace</span> stop
-      </div>
+    <div class="reticle"><div class="h"></div><div class="v"></div></div>
+    <div class="title">Jump Pilot PC</div>
+    <div class="sub">PARROT JUMPING SUMO — CONTRÔLEUR TACTIQUE</div>
+    <div class="keys">
+      <span class="kbd">Z</span><span class="kbd">↑</span> avancer ·
+      <span class="kbd">S</span><span class="kbd">↓</span> reculer ·
+      <span class="kbd">Q</span><span class="kbd">←</span> gauche ·
+      <span class="kbd">D</span><span class="kbd">→</span> droite ·
+      <span class="kbd">Espace</span> stop
     </div>
   </div>
   <div id="panel">
-    <h1>Jump Pilot PC</h1>
+    <h1>Contrôle</h1>
     <div class="status">
       <div class="dot" id="dot"></div>
       <span id="statusText">Déconnecté</span>
-      <span style="margin-left:auto">Batterie: <b id="bat">-</b>%</span>
+      <span class="bat">BAT <b id="bat">-</b>%</span>
     </div>
     <div class="row">
-      <button id="btnConnect" class="primary">Connecter</button>
+      <button id="btnConnect" class="btn primary" style="flex:1">Connecter</button>
     </div>
     <div class="keypad">
-      <div></div><button data-action="forward">▲</button><div></div>
-      <button data-action="left">◀</button><button data-action="stop" class="danger">■</button><button data-action="right">▶</button>
-      <div></div><button data-action="backward">▼</button><div></div>
+      <div></div><button class="btn" data-action="forward" id="kF">▲</button><div></div>
+      <button class="btn" data-action="left" id="kL">◀</button>
+      <button class="btn danger" data-action="stop" id="kS">■</button>
+      <button class="btn" data-action="right" id="kR">▶</button>
+      <div></div><button class="btn" data-action="backward" id="kB">▼</button><div></div>
     </div>
     <div class="speed">
       <label>Vitesse</label>
       <input type="range" id="speed" min="10" max="127" value="40">
-      <span id="speedVal">40</span>
+      <span class="val" id="speedVal">40</span>
     </div>
     <div class="row">
-      <button data-action="highJump">Saut haut</button>
-      <button data-action="longJump">Saut long</button>
+      <button class="btn warn" data-action="highJump">Saut haut</button>
+      <button class="btn warn" data-action="longJump">Saut long</button>
     </div>
     <div class="row">
-      <button data-action="postureJumper">Jumper</button>
-      <button data-action="postureKicker">Kicker</button>
-      <button data-action="postureStanding">Standing</button>
+      <button class="btn" data-action="postureJumper">Jumper</button>
+      <button class="btn" data-action="postureKicker">Kicker</button>
+      <button class="btn" data-action="postureStanding">Standing</button>
     </div>
-    <div class="log" id="log"></div>
+    <div class="logHeader">
+      <span>Journal</span>
+      <button class="btn" id="btnClear" style="padding:2px 8px;font-size:10px">Clear</button>
+    </div>
+    <div class="logBox" id="log"></div>
   </div>
 </div>
 <script>
 const $ = (s)=>document.querySelector(s);
-const log = (m)=>{ const el=$('#log'); el.textContent += m+"\n"; el.scrollTop=el.scrollHeight; };
+const logBox = $('#log');
+function log(m, cls){
+  const d = document.createElement('div');
+  d.className = 'logLine '+(cls||'');
+  d.textContent = m;
+  logBox.appendChild(d);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+$('#btnClear').addEventListener('click', ()=>{ logBox.innerHTML=''; });
+
 let speed = 40;
-$('#speed').addEventListener('input', e=>{ speed=e.target.value; $('#speedVal').textContent=speed; });
-const keys = { z:'forward', s:'backward', q:'left', d:'right', arrowup:'forward', arrowdown:'backward', arrowleft:'left', arrowright:'right' };
+$('#speed').addEventListener('input', e=>{ speed=+e.target.value; $('#speedVal').textContent=speed; });
+
+const keys = { z:'forward', s:'backward', q:'left', d:'right',
+  arrowup:'forward', arrowdown:'backward', arrowleft:'left', arrowright:'right' };
 const held = new Set();
+const keyBtnMap = { forward:'#kF', backward:'#kB', left:'#kL', right:'#kR' };
+
+function pressVisual(action, on){
+  const sel = keyBtnMap[action];
+  if(!sel) return;
+  const el = document.querySelector(sel);
+  if(!el) return;
+  el.classList.toggle('pressed', on);
+}
+
 async function send(action, sp){
   try {
     const r = await fetch('/api/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action, speed: sp||speed})});
     const j = await r.json();
-    if(!j.ok) log('err: '+JSON.stringify(j));
-  } catch(e){ log('net err: '+e); }
+    if(!j.ok) log('err: '+JSON.stringify(j),'err');
+  } catch(e){ log('net err: '+e,'err'); }
 }
+
 function handleKey(e, down){
   const k = e.key.toLowerCase();
-  if(k===' '){ if(down){ send('stop'); } e.preventDefault(); return; }
+  if(k===' '){ if(down) send('stop'); e.preventDefault(); return; }
   if(keys[k]){
     e.preventDefault();
     if(down){
-      if(!held.has(k)){ held.add(k); send(keys[k]); }
+      if(!held.has(k)){ held.add(k); send(keys[k]); pressVisual(keys[k], true); }
     } else {
       held.delete(k);
-      // stop only if no movement key held
+      pressVisual(keys[k], false);
       if(![...held].some(x=>keys[x])) send('stop');
     }
   }
@@ -107,36 +172,46 @@ function handleKey(e, down){
   if(k==='1' && down) send('postureJumper');
   if(k==='2' && down) send('postureKicker');
   if(k==='3' && down) send('postureStanding');
-  if(k==='+' && down){ speed=Math.min(127,+speed+5); $('#speed').value=speed; $('#speedVal').textContent=speed; }
-  if(k==='-' && down){ speed=Math.max(10,+speed-5); $('#speed').value=speed; $('#speedVal').textContent=speed; }
+  if(k==='+' && down){ speed=Math.min(127,speed+5); $('#speed').value=speed; $('#speedVal').textContent=speed; }
+  if(k==='-' && down){ speed=Math.max(10,speed-5); $('#speed').value=speed; $('#speedVal').textContent=speed; }
 }
 window.addEventListener('keydown', e=>handleKey(e,true));
 window.addEventListener('keyup', e=>handleKey(e,false));
+
+// boutons souris : effet enfoncé
 document.querySelectorAll('button[data-action]').forEach(b=>{
   const a=b.dataset.action;
-  const down=()=>send(a);
+  const down=()=>{ b.classList.add('pressed'); send(a); };
+  const up=()=>{ b.classList.remove('pressed'); };
   b.addEventListener('mousedown', down);
+  b.addEventListener('mouseup', up);
+  b.addEventListener('mouseleave', up);
   b.addEventListener('touchstart', e=>{ e.preventDefault(); down(); });
-  if(a!=='stop' && a!=='highJump' && a!=='longJump' && !a.startsWith('posture')) return;
+  b.addEventListener('touchend', up);
 });
+
 $('#btnConnect').addEventListener('click', async ()=>{
-  log('connexion...');
-  const r = await fetch('/api/connect',{method:'POST'});
-  const j = await r.json();
-  log(j.connected?'connecté':'échec');
+  log('connexion en cours...','info');
+  try {
+    const r = await fetch('/api/connect',{method:'POST'});
+    const j = await r.json();
+    log(j.connected?'connecté au robot':'échec de connexion',''+(j.connected?'ok':'err'));
+  } catch(e){ log('erreur réseau: '+e,'err'); }
   updateStatus();
 });
+
 async function updateStatus(){
   try{
     const r=await fetch('/api/status'); const j=await r.json();
     $('#dot').classList.toggle('on', j.connected);
+    $('#dot').classList.toggle('err', !j.connected);
     $('#statusText').textContent = j.connected?'Connecté':'Déconnecté';
-    $('#bat').textContent = j.battery>=0? j.battery : '-';
+    $('#bat').textContent = (j.battery>=0? j.battery : '-');
   }catch(e){}
 }
 setInterval(updateStatus, 2000);
 updateStatus();
+log('Jump Pilot PC prêt. Connecte-toi au Wi-Fi du robot puis clique Connecter.','info');
 </script>
 </body>
 </html>
-"
