@@ -16,7 +16,7 @@ def encode_frame(out_type, buffer, seq, data):
     out[0] = out_type
     out[1] = buffer
     out[2] = seq
-    wr32(out, 3, n + 7)  # size field at offset 3
+    wr32(out[3:], n + 7)  # size field at offset 3
     out[7:7+n] = data
     return bytes(out)
 
@@ -29,9 +29,7 @@ def next_frames(packet):
             break
         h = packet[off:]
         t = h[0]; b = h[1]; s = h[2]
-        length = rd32(h[3:7]) if False else (h[3] | (h[4]<<8) | (h[5]<<16) | (h[6]<<24))
-        # rd32 reads 4 bytes
-        length = rd32(bytes(h[3:7]))
+        length = rd32(h[3:7])
         if t < 1 or t > 4 or length < 7 or length > n - off:
             break
         data = packet[off+7: off+length]
@@ -42,7 +40,8 @@ def make_command(project, cls, cmd, args=b''):
     out = bytearray(4 + len(args))
     out[0] = project
     out[1] = cls
-    wr16(out, 2, cmd)
+    out[2] = cmd & 0xff
+    out[3] = (cmd >> 8) & 0xff
     out[4:4+len(args)] = args
     return bytes(out)
 
