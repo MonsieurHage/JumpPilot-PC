@@ -2,7 +2,7 @@
 Pilote le robot via le module Python pur jumpsumo (protocole Parrot ARSDK).
 Aucun compilateur natif requis.
 """
-import logging
+import os, sys, time, threading, logging
 logging.basicConfig(filename=os.path.join(os.path.dirname(os.path.abspath(__file__)), "jump_pilot.log"),
                     level=logging.INFO, format="%(asctime)s %(message)s")
 def logmsg(m):
